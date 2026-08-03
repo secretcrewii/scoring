@@ -1,0 +1,17 @@
+{
+  "name": "scoring",
+  "metadata": {
+    "description": "프롬프트와 문서에 점수·근거·개선 팁을 붙여주는 옆자리 리뷰어."
+  },
+  "owner": {
+    "name": "scoring"
+  },
+  "plugins": [
+    {
+      "name": "scoring",
+      "description": "프롬프트를 칠 때마다 조용히 채점하고, 아쉬울 때만 한 줄 짚어줍니다. /score로 항목별 점수와 고쳐 쓴 프롬프트를 받아볼 수 있습니다.",
+      "source": "./",
+      "category": "productivity"
+    }
+  ]
+}
