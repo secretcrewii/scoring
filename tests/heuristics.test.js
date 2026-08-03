@@ -137,6 +137,50 @@ test('짧은 수긍 표현은 채점하지 않는다', () => {
   assert.strictEqual(isAck('신규 요금제 안내문을 작성해줘'), false);
 });
 
+test('짧아도 작업 지시면 채점한다 (실사례: 15자 지시를 놓쳤던 버그)', () => {
+  // 실제로 훅이 침묵했던 프롬프트 — 가장 짧은 지시가 가장 코칭이 필요하다
+  assert.strictEqual(shouldSkip('메신저 앱 만들건데 만들어봐'), false);
+  assert.strictEqual(shouldSkip('보고서 하나 써줘'), false);
+  assert.strictEqual(shouldSkip('이거 번역해줘 빨리'), false);
+
+  // 작업 동사가 없는 짧은 입력은 여전히 스킵
+  assert.strictEqual(shouldSkip('그건 좀 아닌 것 같은데'), true);
+  // 8자 미만은 무조건 스킵
+  assert.strictEqual(shouldSkip('만들어봐'), true);
+  // 수긍 표현은 여전히 스킵 (ACKS가 우선)
+  assert.strictEqual(shouldSkip('ㅇㅇ 그렇게 해줘 고마워요 수고'), true);
+});
+
+test('팀 구성 설명을 역할 부여로 오인하지 않는다 (실사례)', () => {
+  // "디자이너, 마케터"는 직원 소개지 AI에게 준 역할이 아니다
+  const teamIntro = score(
+    '나는 이커머스 셀러고 직원의 구성은 디자이너, 마케터, MD, CS가 있는데 업무 정리를 부탁하려고'
+  );
+  // 실제 역할 부여와 비교
+  const realRole = score('너는 10년 차 이커머스 운영 전문 컨설턴트야. 업무 정리를 부탁하려고');
+
+  assert.ok(
+    teamIntro.dims.role < realRole.dims.role,
+    `팀 소개(${teamIntro.dims.role})가 실제 역할 부여(${realRole.dims.role})와 같거나 높다`
+  );
+  assert.ok(teamIntro.dims.role <= 7, `팀 소개만으로 role ${teamIntro.dims.role}점은 과하다`);
+});
+
+test('관점 지정이 있으면 직군 단어가 역할로 잡힌다', () => {
+  const withPerspective = score('마케팅 전문가로서 이 카피를 검토해줘 부탁할게');
+  assert.ok(withPerspective.dims.role >= 10, `"전문가로서"를 못 잡았다: ${withPerspective.dims.role}`);
+});
+
+test('범위 한정을 제약으로 잡는다 (실사례)', () => {
+  const scoped = score('전체 업무 flow가 목표지만 지금은 일단 디자이너 업무에 대해서만 체크리스트를 만들어줘');
+  const unscoped = score('전체 업무 flow 체크리스트를 만들어줘 잘 부탁해 고맙습니다 화이팅');
+
+  assert.ok(
+    scoped.dims.constraint > unscoped.dims.constraint,
+    `범위 한정(${scoped.dims.constraint})이 무한정(${unscoped.dims.constraint})보다 높지 않다`
+  );
+});
+
 test('문자열이 아닌 입력에도 죽지 않는다', () => {
   assert.strictEqual(shouldSkip(null), true);
   assert.strictEqual(shouldSkip(undefined), true);
