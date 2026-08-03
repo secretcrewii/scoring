@@ -32,6 +32,20 @@ const HARD_MIN_LENGTH = 8;
 const TASK_VERBS =
   /(만들|작성|구현|생성|정리|분석|디자인|설계|기획|번역|요약|검토|리뷰|수정|고쳐|바꿔|찾아|조사|추가|삭제|배포|테스트|짜\s*줘|짜줘|써\s*줘|써줘|그려|만들어)/;
 
+/**
+ * 숙고형 어미로 끝나는 문장 — 작업 지시가 아니라 의견을 묻는 대화다.
+ * "뭘 추가해야 할게 있을까?"는 '추가'가 있어도 브리핑이 아니다.
+ */
+const DELIBERATIVE_ENDING =
+  /(있을까|할까|할까요|좋을까|어떨까|어떤가|어때|일까|을까요|는지|은지|인가|인가요|잖아)\s*[?？!.~ㅋㅎ\s]*$/;
+
+/** 의견을 묻는 표현 — 위치와 무관하게 대화 신호. */
+const OPINION_ASK = /(어떻게\s*생각|의견\s*(?:이|을|좀|은)|궁금)/;
+
+/** 감상·칭찬으로 시작하는 문장. 작업 동사가 없으면 대화로 본다. */
+const SENTIMENT_OPENER =
+  /^(좋다|좋네|좋아요|좋은데|와+\s|오+\s|우와|대박|굿|멋지|멋있|최고|감사|고마|고맙|훌륭|역시|미쳤|쩐다|짱)/;
+
 /** 수긍 표현 판정은 이 길이 이하에서만 시도한다. */
 const ACK_MAX_LENGTH = 40;
 
@@ -65,6 +79,10 @@ const SIGNALS = {
     { re: /\bas\s+(?:an?|the)\s+\w+/i, pts: 8 },
     { re: /(역할|페르소나|persona|role)\s*[:：]/i, pts: 10 },
     { re: /(?:you\s+are|act\s+as)\s+an?\s/i, pts: 10 },
+    // 용도·독자 명시는 역할 부여를 대체한다 — 연구상 동등하거나 더 효과적 (rubrics/prompt.md 참고).
+    // "ChatGPT에 붙여넣을 용도", "30대 고객에게 보낼" 같은 표현이 여기 해당한다.
+    { re: /(에게\s*(?:보낼|전달할|안내할|발송할|줄)|가\s*읽을|이\s*볼|용도로|용도이|할\s*용도|에\s*쓸|에\s*붙여넣|목적으로|에\s*올릴)/, pts: 8 },
+    { re: /(독자는|대상\s*독자|읽는\s*사람|보는\s*사람은)/, pts: 8 },
   ],
 
   // 맥락 · 배경: 왜 이걸 시키는지, 누구를 위한 건지 알려줬는가
@@ -124,6 +142,9 @@ function shouldSkip(text) {
   // 짧아도 작업 지시라면 채점한다. 짧은 지시일수록 코칭이 필요하다.
   if (trimmed.length < MIN_LENGTH && !TASK_VERBS.test(trimmed)) return true;
 
+  // 대화·감상·의견 질문은 브리핑이 아니다. 채점하면 통계가 오염되고 잔소리가 된다.
+  if (isConversational(trimmed)) return true;
+
   return false;
 }
 
@@ -143,6 +164,24 @@ function isAck(text) {
 
   const tokens = cleaned.split(/\s+/).filter(Boolean);
   return tokens.every((token) => ACKS.has(token));
+}
+
+/**
+ * 작업 브리핑이 아닌 대화(감상·의견 질문·숙고)인지 판단한다.
+ * @param {string} text
+ * @returns {boolean}
+ */
+function isConversational(text) {
+  const trimmed = typeof text === 'string' ? text.trim() : '';
+  if (trimmed.length === 0) return false;
+
+  if (DELIBERATIVE_ENDING.test(trimmed)) return true;
+  if (OPINION_ASK.test(trimmed)) return true;
+
+  // 칭찬으로 시작하고 작업 동사가 없으면 감상이다. ("좋다. 이제 배포해줘"는 작업)
+  if (SENTIMENT_OPENER.test(trimmed) && !TASK_VERBS.test(trimmed)) return true;
+
+  return false;
 }
 
 /**
@@ -218,5 +257,6 @@ module.exports = {
   score,
   shouldSkip,
   isAck,
+  isConversational,
   findWeakest,
 };

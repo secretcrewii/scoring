@@ -85,17 +85,31 @@ function loadPromptConfig(rubricDir = RUBRIC_DIR) {
  * 특정 항목의 개선 팁을 tips.md에서 꺼낸다.
  * 훅 출력에 한 줄 붙이는 용도다.
  *
+ * 블록에 줄이 여러 개면 날짜에 따라 순환한다 — 매일 같은 문구가 뜨면
+ * 광고 배너처럼 무시되기 때문이다. 같은 날에는 같은 팁이 나온다 (결정론 유지).
+ *
  * @param {string} dimension role | context | format | constraint
  * @param {string} [rubricDir]
+ * @param {number} [dayIndex] 테스트용 오버라이드. 기본은 오늘 날짜 기반.
  * @returns {string|null}
  */
-function loadTip(dimension, rubricDir = RUBRIC_DIR) {
+function loadTip(dimension, rubricDir = RUBRIC_DIR, dayIndex) {
   try {
     const markdown = fs.readFileSync(path.join(rubricDir, 'tips.md'), 'utf8');
     const pattern = new RegExp(`<!--\\s*tip:${dimension}\\s*-->\\s*\\n([\\s\\S]*?)\\n<!--\\s*/tip\\s*-->`);
     const match = markdown.match(pattern);
     if (!match) return null;
-    return match[1].trim() || null;
+
+    const lines = match[1]
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean);
+    if (lines.length === 0) return null;
+
+    const day = Number.isFinite(dayIndex)
+      ? dayIndex
+      : Math.floor(Date.now() / (24 * 60 * 60 * 1000));
+    return lines[((day % lines.length) + lines.length) % lines.length];
   } catch {
     return null;
   }

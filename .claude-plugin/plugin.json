@@ -1,6 +1,6 @@
 {
   "name": "scoring",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "displayName": "scoring — 프롬프트 채점 코치",
   "description": "프롬프트·세션·문서에 점수와 근거, 개선 팁을 붙여주는 옆자리 리뷰어.",
   "keywords": [

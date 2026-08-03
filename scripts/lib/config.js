@@ -14,6 +14,10 @@ const path = require('node:path');
 const DEFAULTS = {
   enabled: true,
   threshold: 75,
+  /** 코칭 노트 최소 간격(분). 이 안에 낮은 점수가 또 나와도 노트를 반복하지 않는다. 0이면 쿨다운 없음. */
+  cooldownMinutes: 10,
+  /** 하루 한 번, 세션 시작 시 채점 현황 한 줄 리마인더. */
+  dailyNudge: true,
 };
 
 /** 사용자 데이터 디렉터리. 플러그인 폴더 바깥이라 플러그인을 업데이트해도 살아남는다. */
@@ -49,6 +53,10 @@ function load() {
     if (Number.isFinite(parsed.threshold)) {
       config.threshold = Math.min(100, Math.max(0, parsed.threshold));
     }
+    if (Number.isFinite(parsed.cooldownMinutes)) {
+      config.cooldownMinutes = Math.max(0, parsed.cooldownMinutes);
+    }
+    if (typeof parsed.dailyNudge === 'boolean') config.dailyNudge = parsed.dailyNudge;
   } catch {
     // 파일이 없는 것이 정상 경로다. 깨진 경우에도 기본값으로 계속 간다.
   }

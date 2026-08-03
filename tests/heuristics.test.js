@@ -3,7 +3,14 @@
 const test = require('node:test');
 const assert = require('node:assert');
 
-const { score, shouldSkip, isAck, findWeakest, DIMENSIONS } = require('../scripts/lib/heuristics');
+const {
+  score,
+  shouldSkip,
+  isAck,
+  isConversational,
+  findWeakest,
+  DIMENSIONS,
+} = require('../scripts/lib/heuristics');
 
 /**
  * 이 파일이 채점 감각을 고정한다.
@@ -178,6 +185,42 @@ test('범위 한정을 제약으로 잡는다 (실사례)', () => {
   assert.ok(
     scoped.dims.constraint > unscoped.dims.constraint,
     `범위 한정(${scoped.dims.constraint})이 무한정(${unscoped.dims.constraint})보다 높지 않다`
+  );
+});
+
+test('대화·감상·의견 질문은 채점하지 않는다 (실사례)', () => {
+  // 실제로 4점 노트가 떴던 대화형 메시지 — 작업 동사('추가')가 있어도 대화다
+  assert.strictEqual(
+    shouldSkip('좋다 지금 이 플러그인 너무 좋다. 근데 더 업그레이드 하거나 추가해야할게 있을까?'),
+    true
+  );
+  assert.strictEqual(isConversational('이 기능 어떻게 생각해? 의견이 궁금하네'), true);
+  assert.strictEqual(isConversational('그렇게 하는 게 더 좋을까'), true);
+
+  // 감상으로 시작해도 작업 동사가 이어지면 작업이다
+  assert.strictEqual(isConversational('좋다. 이제 결제 모듈 배포해줘'), false);
+  // 평범한 작업 지시는 대화가 아니다
+  assert.strictEqual(isConversational('메신저 앱 만들건데 만들어봐'), false);
+  assert.strictEqual(
+    shouldSkip('너는 10년 차 마케터야. 신규 요금제 안내 메일을 표 3행으로 써줘'),
+    false
+  );
+});
+
+test('용도·독자 명시를 역할 대체로 인정한다 (실사례: 훅 64 vs 정독 78 괴리)', () => {
+  // "ChatGPT에 붙여넣을 용도" — 역할은 없지만 용도가 역할을 대체한다
+  const withPurpose = score(
+    '인기글 300개를 수집해줘. 수집한 데이터를 ChatGPT에 붙여넣어서 사용할 용도로 쓸 거라서 md 파일 형식으로 추출해주면 좋겠어'
+  );
+  assert.ok(withPurpose.dims.role >= 8, `용도 명시를 role로 못 잡았다: ${withPurpose.dims.role}`);
+
+  const withAudience = score('30대 육아맘 고객에게 보낼 재구매 유도 문자를 작성해줘 부담스럽지 않게');
+  assert.ok(withAudience.dims.role >= 8, `독자 명시를 role로 못 잡았다: ${withAudience.dims.role}`);
+
+  const without = score('인기글 300개를 수집해서 파일로 추출해줘 최대한 많은 정보를 담아서');
+  assert.ok(
+    withPurpose.dims.role > without.dims.role,
+    '용도 명시가 role 점수를 올리지 못했다'
   );
 });
 

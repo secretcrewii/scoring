@@ -17,9 +17,10 @@ const STRONG_PROMPT =
 
 /**
  * 훅을 실제 프로세스로 띄운다. stdin/exit code/stdout을 있는 그대로 검증한다.
+ * sharedDir을 주면 그 디렉터리를 재사용한다 (쿨다운처럼 호출 간 상태가 필요한 테스트용).
  */
-function runGate(input, extraEnv = {}) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'scoring-gate-'));
+function runGate(input, extraEnv = {}, sharedDir = null) {
+  const dir = sharedDir || fs.mkdtempSync(path.join(os.tmpdir(), 'scoring-gate-'));
   const ledgerFile = path.join(dir, 'ledger.jsonl');
 
   try {
@@ -44,7 +45,7 @@ function runGate(input, extraEnv = {}) {
 
     return { ...result, ledgerLines };
   } finally {
-    fs.rmSync(dir, { recursive: true, force: true });
+    if (!sharedDir) fs.rmSync(dir, { recursive: true, force: true });
   }
 }
 
@@ -148,6 +149,46 @@ test('prompt 필드가 없거나 타입이 달라도 exit 0으로 통과한다',
     const result = runGate(payload);
     assert.strictEqual(result.status, 0, `payload=${JSON.stringify(payload)} 에서 exit 0이 아니다`);
     assert.strictEqual(result.stdout.trim(), '');
+  }
+});
+
+test('대화형 메시지는 채점도 기록도 노트도 없다', () => {
+  const result = runGate({
+    prompt: '좋다 지금 이 플러그인 너무 좋다. 근데 더 업그레이드 하거나 추가해야할게 있을까?',
+  });
+
+  assert.strictEqual(result.status, 0);
+  assert.strictEqual(result.stdout.trim(), '');
+  assert.strictEqual(result.ledgerLines.length, 0);
+});
+
+test('쿨다운: 노트를 띄운 직후에는 낮은 점수여도 노트를 참는다 (기록은 남긴다)', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'scoring-gate-'));
+
+  try {
+    const first = runGate({ prompt: WEAK_PROMPT }, {}, dir);
+    assert.match(first.stdout, /scoring-coach-note/, '첫 번째 노트가 떠야 한다');
+
+    const second = runGate({ prompt: WEAK_PROMPT }, {}, dir);
+    assert.strictEqual(second.stdout.trim(), '', '쿨다운 중에는 침묵해야 한다');
+    assert.strictEqual(second.ledgerLines.length, 2, '기록은 두 건 모두 남아야 한다');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('쿨다운 0으로 설정하면 매번 노트가 뜬다', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'scoring-gate-'));
+
+  try {
+    fs.writeFileSync(path.join(dir, 'config.json'), JSON.stringify({ cooldownMinutes: 0 }), 'utf8');
+
+    const first = runGate({ prompt: WEAK_PROMPT }, {}, dir);
+    const second = runGate({ prompt: WEAK_PROMPT }, {}, dir);
+    assert.match(first.stdout, /scoring-coach-note/);
+    assert.match(second.stdout, /scoring-coach-note/, '쿨다운 0이면 두 번째도 떠야 한다');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
   }
 });
 

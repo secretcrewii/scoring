@@ -18,6 +18,7 @@ const heuristics = require('./lib/heuristics');
 const rubric = require('./lib/rubric');
 const ledger = require('./lib/ledger');
 const config = require('./lib/config');
+const state = require('./lib/state');
 
 const LABELS = {
   role: '역할 부여',
@@ -127,7 +128,11 @@ async function main() {
 
   if (result.total >= threshold) return; // 잘 쓴 프롬프트엔 침묵한다
 
+  // 잔소리 방지: 최근에 노트를 띄웠으면 이번엔 참는다 (기록은 위에서 이미 남겼다).
+  if (state.within('lastNoteAt', config.load().cooldownMinutes)) return;
+
   process.stdout.write(buildNote(result, threshold) + '\n');
+  state.mark('lastNoteAt');
 }
 
 main()
