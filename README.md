@@ -37,22 +37,50 @@
 
 ## 설치
 
-Claude Code에서:
+scoring은 Claude Code 플러그인입니다. 환경에 맞는 방법을 고르세요.
+
+### Claude Code (권장)
+
+이 저장소를 플러그인 마켓플레이스로 추가한 뒤 설치합니다:
 
 ```
-/plugin marketplace add <이 저장소 주소>
-/plugin install scoring
+/plugin marketplace add secretcrewii/scoring
+/plugin install scoring@scoring
 ```
 
-저장소가 없다면 이 폴더를 통째로 복사한 뒤:
+그다음 Claude Code를 재시작하세요 (버전이 지원하면 `/reload-plugins`). 스킬과 훅이 그때 로드됩니다.
+나중에 업데이트는 `/plugin marketplace update scoring`.
+
+### 수동 설치 (마켓플레이스 없이)
+
+개인 스킬 디렉터리에 클론하면 다음 세션부터 `scoring@skills-dir`로 자동 로드됩니다.
+설치 단계가 따로 없습니다.
+
+```bash
+git clone https://github.com/secretcrewii/scoring.git ~/.claude/skills/scoring
+```
+
+Windows PowerShell:
+
+```powershell
+git clone https://github.com/secretcrewii/scoring.git "$env:USERPROFILE\.claude\skills\scoring"
+```
+
+그다음 Claude Code를 재시작하세요.
+
+### 로컬 폴더에서 (개발용)
+
+저장소를 이미 받아두었다면 그 폴더를 그대로 마켓플레이스로 등록할 수 있습니다.
+이 방식은 폴더를 복사하지 않고 **직접 참조**하므로, `rubrics/` 파일을 고치면 바로 반영됩니다.
 
 ```
 /plugin marketplace add C:\경로\scoring
-/plugin install scoring
+/plugin install scoring@scoring
 ```
 
-설치 후 Claude Code를 한 번 껐다 켜면 적용됩니다.
-별도로 설치할 프로그램은 없습니다 (Node 18 이상만 있으면 됩니다).
+---
+
+별도로 설치할 프로그램은 없습니다. Node 18 이상만 있으면 되고, 외부 패키지 의존성은 0개입니다.
 
 ---
 
