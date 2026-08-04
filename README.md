@@ -1,5 +1,7 @@
 # scoring
 
+> A Korean-language prompt-coaching plugin for Claude Code — scores your prompts (0-100) as you type, explains why, and teaches research-backed prompting habits. Built for non-developer business users.
+
 프롬프트와 문서에 **점수를 매기고, 왜 그 점수인지 설명하고, 다음에 더 잘 쓰는 법을 알려주는** Claude Code 플러그인입니다.
 
 옆자리에서 리뷰해주던 사람의 역할을 대신합니다.
