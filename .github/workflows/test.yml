@@ -1,0 +1,93 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: node ${{ matrix.node }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: ['18', '20', '22']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      # 외부 의존성이 0개이므로 설치 단계가 없다. 이것이 이 플러그인의 설계 제약이다.
+      - name: Verify zero dependencies
+        shell: bash
+        run: |
+          if [ -f package-lock.json ] || [ -d node_modules ]; then
+            echo "::error::scoring must stay dependency-free"
+            exit 1
+          fi
+          node -e "const p=require('./package.json');
+            if (p.dependencies || p.devDependencies) {
+              console.error('package.json must declare no dependencies');
+              process.exit(1);
+            }"
+
+      - name: Run tests
+        run: node --test
+
+  validate:
+    name: plugin manifest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate manifests are well-formed JSON
+        run: |
+          node -e "
+            const fs = require('fs');
+            for (const f of ['.claude-plugin/plugin.json', '.claude-plugin/marketplace.json', 'hooks/hooks.json']) {
+              JSON.parse(fs.readFileSync(f, 'utf8'));
+              console.log('ok', f);
+            }
+          "
+
+      - name: Plugin version matches package version
+        run: |
+          node -e "
+            const a = require('./.claude-plugin/plugin.json').version;
+            const b = require('./package.json').version;
+            if (a !== b) { console.error('version mismatch:', a, '!=', b); process.exit(1); }
+            console.log('version', a);
+          "
+
+      - name: Every skill has required frontmatter
+        run: |
+          node -e "
+            const fs = require('fs'), path = require('path');
+            let failed = false;
+            for (const dir of fs.readdirSync('skills')) {
+              const file = path.join('skills', dir, 'SKILL.md');
+              const text = fs.readFileSync(file, 'utf8');
+              for (const key of ['name:', 'description:']) {
+                if (!text.includes(key)) { console.error(file, 'missing', key); failed = true; }
+              }
+            }
+            if (failed) process.exit(1);
+            console.log('all skills ok');
+          "
+
+      - name: Tip blocks are parseable
+        run: |
+          node -e "
+            const { loadTip } = require('./scripts/lib/rubric');
+            for (const dim of ['role', 'context', 'format', 'constraint']) {
+              const tip = loadTip(dim);
+              if (!tip) { console.error('no tip for', dim); process.exit(1); }
+              console.log(dim, '->', tip.slice(0, 30) + '...');
+            }
+          "

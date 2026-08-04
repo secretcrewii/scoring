@@ -1,10 +1,63 @@
 # scoring
 
-> A Korean-language prompt-coaching plugin for Claude Code — scores your prompts (0-100) as you type, explains why, and teaches research-backed prompting habits. Built for non-developer business users.
+**A prompt coach for Claude Code that grades you as you type — and shuts up when you're doing fine.**
+
+[![test](https://github.com/secretcrewii/scoring/actions/workflows/test.yml/badge.svg)](https://github.com/secretcrewii/scoring/actions/workflows/test.yml)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![zero deps](https://img.shields.io/badge/dependencies-0-brightgreen.svg)](package.json)
+[![Korean](https://img.shields.io/badge/output-한국어-orange.svg)](#설치)
+
+Most prompt tools hand you a library of magic phrases. This one does the opposite: it
+watches what *you* write, scores it out of 100 across four dimensions, and tells you the
+single thing to fix. Above the threshold, it says nothing at all.
+
+Write a weak prompt and you get one line back:
+
+```
+📊 62점 (기준 75점) · 출력 형식 — 어떤 모양으로 답해달라는 지시가 없어요
+   역할 20 · 맥락 20 · 형식 4 · 제약 18
+   → 끝에 "표 3행으로, 각 행 40자 이내" 한 줄만 붙여도 확 올라갑니다.
+   자세한 채점은 /score
+```
+
+Write a good one and you get silence. That's the whole design.
+
+**Why it might be worth your time**
+
+- **Costs nothing to leave on.** The hook is deterministic — no LLM call, ~50ms, zero
+  tokens. Deep judgment happens only when you run `/score` yourself.
+- **The rubric is sourced, and it disagrees with popular advice.** Built from 89
+  references (Anthropic/OpenAI/Google official guidance plus measured studies). Chain-of-thought
+  is scored as conditional, not universal. Emotional appeals, tipping, and politeness get
+  no credit — they measure as no-ops. Expert personas don't raise accuracy
+  ([EMNLP 2024](https://arxiv.org/abs/2311.10054), Wharton), so role is scored as a tone
+  device and naming your audience counts just as much.
+- **It stays quiet.** Conversation, questions, and small talk aren't scored at all, and
+  notes are rate-limited. The detection rules were rebuilt from real false positives.
+- **Criteria live in markdown, not code.** Change `rubrics/prompt.md` and it applies
+  immediately — no rebuild, no restart, no JavaScript.
+- **Your prompts are never stored.** The ledger keeps scores and length only.
+
+**Current limitation, stated plainly:** all coaching output is in Korean, and the rubrics
+encode Korean-specific judgment (honorific level is scored as an output-format requirement).
+English support is wanted but not built — see [CONTRIBUTING](CONTRIBUTING.md).
+
+```
+/plugin marketplace add secretcrewii/scoring
+/plugin install scoring@scoring
+```
+
+---
+
+<div dir="auto">
+
+여기서부터 한국어 문서입니다.
 
 프롬프트와 문서에 **점수를 매기고, 왜 그 점수인지 설명하고, 다음에 더 잘 쓰는 법을 알려주는** Claude Code 플러그인입니다.
 
 옆자리에서 리뷰해주던 사람의 역할을 대신합니다.
+
+</div>
 
 ---
 
@@ -200,3 +253,16 @@ scripts/ledger-write.js     스킬이 기록할 때 쓰는 CLI 래퍼
   `tests/heuristics.test.js`의 픽스처로 회귀를 확인하세요
 
 설계 문서: [docs/superpowers/specs/2026-08-03-scoring-plugin-design.md](docs/superpowers/specs/2026-08-03-scoring-plugin-design.md)
+
+---
+
+## 기여하기
+
+**코드를 몰라도 기여할 수 있습니다.** 이 플러그인에서 가장 값진 변경은 마크다운 한 줄입니다 —
+[rubrics/tips.md](rubrics/tips.md)에 좋은 팁을 추가하는 것. 자세한 내용은 [CONTRIBUTING.md](CONTRIBUTING.md)를 보세요.
+
+변경 이력은 [CHANGELOG.md](CHANGELOG.md)에 있습니다.
+
+## 라이선스
+
+[MIT](LICENSE)
