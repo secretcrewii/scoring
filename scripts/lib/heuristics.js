@@ -53,6 +53,14 @@ const OPINION_ASK = /(어떻게\s*생각|의견\s*(?:이|을|좀|은)|궁금|무
 const SENTIMENT_OPENER =
   /^(좋다|좋네|좋아요|좋은데|와+\s|오+\s|우와|대박|굿|멋지|멋있|최고|감사|고마|고맙|훌륭|역시|미쳤|쩐다|짱)/;
 
+/**
+ * 사람이 쓴 프롬프트가 아니라 하네스가 주입한 메시지.
+ * 백그라운드 작업 알림, 슬래시 명령어 래퍼, 로컬 명령 출력 등이 여기 해당한다.
+ * 이걸 채점하면 사용자에게 뜬금없는 노트가 뜨고 평균까지 오염된다.
+ */
+const SYSTEM_MESSAGE =
+  /(\[SYSTEM NOTIFICATION|<task-notification>|<system-reminder>|<local-command-caveat>|<command-name>|<command-message>|<local-command-stdout>|Caveat: The messages below were generated)/;
+
 /** 물음표. 한국어에서 가장 강한 질문 신호다. */
 const QUESTION_MARK = /[?？]/;
 
@@ -157,6 +165,9 @@ function shouldSkip(text) {
 
   // 슬래시 명령어는 프롬프트가 아니다.
   if (trimmed.startsWith('/')) return true;
+
+  // 하네스가 주입한 메시지도 사람이 쓴 프롬프트가 아니다.
+  if (SYSTEM_MESSAGE.test(trimmed)) return true;
 
   if (trimmed.length < HARD_MIN_LENGTH) return true;
 
