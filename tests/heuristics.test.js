@@ -63,8 +63,91 @@ test('부실한 프롬프트는 임계값 75점에 못 미친다', () => {
   }
 });
 
+const GOOD_EN_PROMPTS = [
+  'You are a senior B2B SaaS marketer with 10 years of experience. I need a pricing-change ' +
+    'announcement email, because we are migrating existing paid customers to a new plan. ' +
+    'The audience is existing paid customers. Base it on pricing.md. Format it as a 3-row table, ' +
+    'under 40 characters per row. Do not use hyperbole; keep the tone formal.',
+
+  'Act as a skeptical Series A investor. I want you to review the IR draft below so that we can ' +
+    'fix it before the meeting. The audience is institutional investors. Work from deck.md. ' +
+    'List the problems as 5 bullets, each with supporting evidence. Never raise a point without ' +
+    'numbers, and keep the tone professional.',
+
+  'Role: senior backend engineer. Our API response times are currently slow and we need to find ' +
+    'the cause. Based on `server.js`, list bottleneck candidates in a table with at most 3 rows. ' +
+    'Avoid speculation — include only what the code supports.',
+
+  'This is for an onboarding doc that will be read by new engineers in their first week. ' +
+    'Rewrite the existing README.md so that it works for that audience. Use step-by-step ' +
+    'numbered steps, 7 steps maximum, each step under 2 sentences. Always expand internal ' +
+    'acronyms, and do not use casual phrasing.',
+];
+
+const BAD_EN_PROMPTS = [
+  'write me a marketing email please',
+  'can you help me with the report, it is urgent and I need it fast',
+  'review the code and tell me what is wrong with it, just a quick look is fine',
+  'make something for the launch, you know what I mean',
+];
+
+test('영어: 좋은 프롬프트는 기본 임계값 75점을 넘는다', () => {
+  for (const prompt of GOOD_EN_PROMPTS) {
+    const result = score(prompt);
+    assert.ok(
+      result.total >= 75,
+      `기대: >=75, 실제: ${result.total}\n항목: ${JSON.stringify(result.dims)}\n${prompt.slice(0, 50)}…`
+    );
+  }
+});
+
+test('영어: 부실한 프롬프트는 임계값에 못 미친다', () => {
+  for (const prompt of BAD_EN_PROMPTS) {
+    const result = score(prompt);
+    assert.ok(
+      result.total < 75,
+      `기대: <75, 실제: ${result.total}\n항목: ${JSON.stringify(result.dims)}\n${prompt}`
+    );
+  }
+});
+
+test('영어: 항목별로 해당 신호를 감지한다', () => {
+  const role = score('You are a senior growth marketer with 10 years of experience, just do whatever');
+  assert.ok(role.dims.role >= 15, `role 미감지: ${role.dims.role}`);
+
+  const format = score('just do the thing, output a markdown table with 5 rows, each row under 40 characters');
+  assert.ok(format.dims.format >= 15, `format 미감지: ${format.dims.format}`);
+
+  const constraint = score('do that thing but never use hyperbole, keep the tone formal, under 300 words maximum');
+  assert.ok(constraint.dims.constraint >= 15, `constraint 미감지: ${constraint.dims.constraint}`);
+
+  const context = score(
+    'We are migrating existing customers so that churn stays flat. The audience is paid ' +
+      'customers and you should work from the attached pricing.md that our team maintains.'
+  );
+  assert.ok(context.dims.context >= 15, `context 미감지: ${context.dims.context}`);
+});
+
+test('영어: 대화·질문은 채점하지 않는다', () => {
+  assert.strictEqual(shouldSkip('Is this already on the marketplace?'), true);
+  assert.strictEqual(shouldSkip('What do you think about that approach?'), true);
+  assert.strictEqual(shouldSkip('Nice, this plugin is really good. Anything else worth adding?'), true);
+  assert.strictEqual(shouldSkip('Should we split this into two repositories'), true);
+
+  // 요청 표현이 있으면 물음표가 있어도 작업이다
+  assert.strictEqual(shouldSkip('Can you compare the three competitors in a table?'), false);
+  assert.strictEqual(shouldSkip('Please write the pricing announcement as a 3-row table'), false);
+});
+
+test('영어 사용자에게는 역할 대신 독자 지정도 인정한다', () => {
+  const audience = score(
+    'This is a re-purchase nudge intended for mothers in their 30s. Keep it light and write it now.'
+  );
+  assert.ok(audience.dims.role >= 8, `독자 명시를 role로 못 잡았다: ${audience.dims.role}`);
+});
+
 test('총점은 0~100 범위이고 항목 합과 일치한다', () => {
-  for (const prompt of [...GOOD_PROMPTS, ...BAD_PROMPTS]) {
+  for (const prompt of [...GOOD_PROMPTS, ...BAD_PROMPTS, ...GOOD_EN_PROMPTS, ...BAD_EN_PROMPTS]) {
     const result = score(prompt);
     const sum = DIMENSIONS.reduce((acc, dim) => acc + result.dims[dim], 0);
 

@@ -5,7 +5,7 @@
 [![test](https://github.com/secretcrewii/scoring/actions/workflows/test.yml/badge.svg)](https://github.com/secretcrewii/scoring/actions/workflows/test.yml)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![zero deps](https://img.shields.io/badge/dependencies-0-brightgreen.svg)](package.json)
-[![Korean](https://img.shields.io/badge/output-한국어-orange.svg)](#설치)
+[![languages](https://img.shields.io/badge/languages-English%20%7C%20한국어-orange.svg)](#language)
 
 Most prompt tools hand you a library of magic phrases. This one does the opposite: it
 watches what *you* write, scores it out of 100 across four dimensions, and tells you the
@@ -14,10 +14,10 @@ single thing to fix. Above the threshold, it says nothing at all.
 Write a weak prompt and you get one line back:
 
 ```
-📊 62점 (기준 75점) · 출력 형식 — 어떤 모양으로 답해달라는 지시가 없어요
-   역할 20 · 맥락 20 · 형식 4 · 제약 18
-   → 끝에 "표 3행으로, 각 행 40자 이내" 한 줄만 붙여도 확 올라갑니다.
-   자세한 채점은 /score
+📊 62/100 (bar: 75) · Output format — it doesn't say what shape the answer should take
+   role 20 · context 20 · format 4 · limits 18
+   → Add "a 3-row table, under 40 characters per row" at the end and the answer sharpens.
+   Run /score for the full breakdown
 ```
 
 Write a good one and you get silence. That's the whole design.
@@ -38,14 +38,32 @@ Write a good one and you get silence. That's the whole design.
   immediately — no rebuild, no restart, no JavaScript.
 - **Your prompts are never stored.** The ledger keeps scores and length only.
 
-**Current limitation, stated plainly:** all coaching output is in Korean, and the rubrics
-encode Korean-specific judgment (honorific level is scored as an output-format requirement).
-English support is wanted but not built — see [CONTRIBUTING](CONTRIBUTING.md).
+<a id="language"></a>
+
+**Language: English and Korean, detected automatically.** Write in English, get coached in
+English; write in Korean, get coached in Korean. Nothing to configure — the language is read
+from your own prompt, so bilingual users don't have to switch a setting. Each language has
+its own rubric under `rubrics/en/` and `rubrics/ko/`, because the criteria genuinely differ
+(Korean scores honorific level as an output-format requirement; English doesn't have that
+axis). Pin it with `{"language": "en"}` in `~/.claude/scoring/config.json` if you prefer.
 
 ```
 /plugin marketplace add secretcrewii/scoring
 /plugin install scoring@scoring
 ```
+
+**The four dimensions**, 25 points each — they map almost exactly onto Google's official
+PTCF framework (Persona · Task · Context · Format):
+
+| Dimension | The question it asks |
+|---|---|
+| **Role** | Who should answer, from what perspective? (Naming your audience counts just as much.) |
+| **Context** | Why is this needed, who reads it, and is the source material here? |
+| **Output format** | What shape should the answer take — structure, length as a number, register, examples? |
+| **Constraints** | Where are the lines? (A prohibition needs a paired replacement action.) |
+
+Plus a **task-clarity deduction** (up to −15): you can fill all four and still have no
+actual task. That one is `/score` only — a vague object is beyond a regex.
 
 ---
 
@@ -173,6 +191,15 @@ set SCORING_OFF=1
 { "enabled": false }
 ```
 
+### 언어 고정하기
+
+기본은 자동입니다 — 한글로 쓰면 한국어, 영어로 쓰면 영어로 코칭합니다.
+항상 한 언어로 받고 싶으면 `config.json`에:
+
+```json
+{ "language": "ko" }
+```
+
 ### 덜 자주 뜨게 하기
 
 같은 파일에서 기준점을 낮춥니다. 기본은 75점입니다.
@@ -203,14 +230,16 @@ set SCORING_OFF=1
 
 `rubrics/` 폴더의 마크다운 파일만 고치면 됩니다. **코드는 건드릴 필요 없습니다.**
 
+한국어 기준은 `rubrics/ko/`, 영어 기준은 `rubrics/en/`에 있습니다.
+
 | 파일 | 무엇을 정하나 |
 |---|---|
-| `rubrics/prompt.md` | 프롬프트 채점 기준. 맨 위 설정 블록에서 기준점과 항목별 배점도 조정 |
-| `rubrics/session.md` | 세션 평가 기준 |
-| `rubrics/doc.md` | 문서·기획안 평가 기준 |
-| `rubrics/tips.md` | 항목별 개선 팁 모음. **새 팁이 생기면 여기 계속 추가하세요** |
+| `rubrics/ko/prompt.md` | 프롬프트 채점 기준. 맨 위 설정 블록에서 기준점과 항목별 배점도 조정 |
+| `rubrics/ko/session.md` | 세션 평가 기준 |
+| `rubrics/ko/doc.md` | 문서·기획안 평가 기준 |
+| `rubrics/ko/tips.md` | 항목별 개선 팁 모음. **새 팁이 생기면 여기 계속 추가하세요** |
 
-예를 들어 "출력 형식을 더 중요하게 보고 싶다"면 `rubrics/prompt.md`의 설정 블록에서:
+예를 들어 "출력 형식을 더 중요하게 보고 싶다"면 `rubrics/ko/prompt.md`의 설정 블록에서:
 
 ```json
 {

@@ -39,21 +39,50 @@ function extractJsonBlock(markdown) {
 }
 
 /**
+ * 언어별 rubric 파일 경로를 찾는다.
+ *
+ * `rubrics/<lang>/<name>.md`를 우선 보고, 없으면 `rubrics/<name>.md`로 물러난다.
+ * 후자는 0.4.x 이전 구조로, 그때 파일을 직접 고쳐 쓰던 사용자를 깨뜨리지 않기 위한 통로다.
+ *
+ * @param {string} name 확장자 없는 파일명 (prompt | session | doc | tips)
+ * @param {string} [lang]
+ * @param {string} [rubricDir]
+ * @returns {string|null} 존재하는 경로, 없으면 null
+ */
+function resolve(name, lang = 'ko', rubricDir = RUBRIC_DIR) {
+  const candidates = [
+    path.join(rubricDir, lang, `${name}.md`),
+    path.join(rubricDir, `${name}.md`),
+  ];
+
+  for (const candidate of candidates) {
+    try {
+      if (fs.statSync(candidate).isFile()) return candidate;
+    } catch {
+      // 다음 후보로
+    }
+  }
+  return null;
+}
+
+/**
  * 프롬프트 채점 설정을 로드한다.
  *
- * 우선순위: 사용자 config.json의 threshold > rubrics/prompt.md > 내장 기본값
+ * 우선순위: 사용자 config.json의 threshold > rubrics/<lang>/prompt.md > 내장 기본값
  *
+ * @param {string} [lang]
  * @param {string} [rubricDir] 테스트용 오버라이드
  * @returns {{threshold: number, weights: Record<string, number>}}
  */
-function loadPromptConfig(rubricDir = RUBRIC_DIR) {
+function loadPromptConfig(lang = 'ko', rubricDir = RUBRIC_DIR) {
   const result = {
     threshold: DEFAULT_PROMPT_CONFIG.threshold,
     weights: { ...DEFAULT_PROMPT_CONFIG.weights },
   };
 
   try {
-    const markdown = fs.readFileSync(path.join(rubricDir, 'prompt.md'), 'utf8');
+    const file = resolve('prompt', lang, rubricDir);
+    const markdown = fs.readFileSync(file, 'utf8');
     const block = extractJsonBlock(markdown);
 
     if (block) {
@@ -89,13 +118,15 @@ function loadPromptConfig(rubricDir = RUBRIC_DIR) {
  * 광고 배너처럼 무시되기 때문이다. 같은 날에는 같은 팁이 나온다 (결정론 유지).
  *
  * @param {string} dimension role | context | format | constraint
- * @param {string} [rubricDir]
+ * @param {string} [lang]
  * @param {number} [dayIndex] 테스트용 오버라이드. 기본은 오늘 날짜 기반.
+ * @param {string} [rubricDir]
  * @returns {string|null}
  */
-function loadTip(dimension, rubricDir = RUBRIC_DIR, dayIndex) {
+function loadTip(dimension, lang = 'ko', dayIndex, rubricDir = RUBRIC_DIR) {
   try {
-    const markdown = fs.readFileSync(path.join(rubricDir, 'tips.md'), 'utf8');
+    const file = resolve('tips', lang, rubricDir);
+    const markdown = fs.readFileSync(file, 'utf8');
     const pattern = new RegExp(`<!--\\s*tip:${dimension}\\s*-->\\s*\\n([\\s\\S]*?)\\n<!--\\s*/tip\\s*-->`);
     const match = markdown.match(pattern);
     if (!match) return null;
@@ -115,4 +146,11 @@ function loadTip(dimension, rubricDir = RUBRIC_DIR, dayIndex) {
   }
 }
 
-module.exports = { RUBRIC_DIR, DEFAULT_PROMPT_CONFIG, loadPromptConfig, loadTip, extractJsonBlock };
+module.exports = {
+  RUBRIC_DIR,
+  DEFAULT_PROMPT_CONFIG,
+  resolve,
+  loadPromptConfig,
+  loadTip,
+  extractJsonBlock,
+};

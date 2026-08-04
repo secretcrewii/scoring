@@ -19,36 +19,7 @@ const rubric = require('./lib/rubric');
 const ledger = require('./lib/ledger');
 const config = require('./lib/config');
 const state = require('./lib/state');
-
-const LABELS = {
-  role: '역할 부여',
-  context: '맥락 · 배경',
-  format: '출력 형식',
-  constraint: '제약 · 예외',
-};
-
-/** 한 줄 요약용. LABELS에 있는 '·'가 구분자와 섞이면 읽기 어렵다. */
-const SHORT_LABELS = {
-  role: '역할',
-  context: '맥락',
-  format: '형식',
-  constraint: '제약',
-};
-
-/** tips.md를 못 읽었을 때 쓰는 내장 팁. */
-const FALLBACK_TIPS = {
-  role: '앞에 "너는 ○○ 전문가다" 한 줄만 붙여도 답변의 깊이가 달라집니다.',
-  context: '왜 필요한지, 누가 볼 건지를 한 문장만 적어주세요. AI가 추측하지 않아도 됩니다.',
-  format: '끝에 "표 3행으로, 각 행 40자 이내" 같은 한 줄만 붙여도 확 올라갑니다.',
-  constraint: '"○○는 빼고", "존댓말로" 같은 선을 그어주면 다시 시킬 일이 줄어듭니다.',
-};
-
-const WEAKNESS_HEADLINE = {
-  role: '누구로서 답해야 할지가 없어요',
-  context: '왜 필요한 작업인지가 안 보여요',
-  format: '어떤 모양으로 답해달라는 지시가 없어요',
-  constraint: '지켜야 할 선이 안 그어져 있어요',
-};
+const i18n = require('./lib/i18n');
 
 /** stdin을 끝까지 읽는다. */
 function readStdin() {
@@ -77,23 +48,21 @@ function readStdin() {
  * 감싸지 않으면 Claude가 매 턴 "프롬프트를 다시 써주세요"라고 반응하며
  * 원래 작업을 하지 않는다. 그래서 명시적으로 무시하라고 지시한다.
  */
-function buildNote(result, threshold) {
+function buildNote(result, threshold, lang) {
+  const s = i18n.strings(lang);
   const dim = result.weakest;
-  const label = LABELS[dim];
-  const headline = WEAKNESS_HEADLINE[dim];
-  const tip = rubric.loadTip(dim) || FALLBACK_TIPS[dim];
+  const tip = rubric.loadTip(dim, lang) || s.fallbackTip[dim];
 
-  const bars = heuristics.DIMENSIONS.map((d) => `${SHORT_LABELS[d]} ${result.dims[d]}`).join(' · ');
+  const bars = heuristics.DIMENSIONS.map((d) => `${s.shortLabels[d]} ${result.dims[d]}`).join(' · ');
 
   return [
     '<scoring-coach-note>',
-    '아래는 사용자에게 표시되는 프롬프트 코칭 노트입니다.',
-    '답변에서 이 노트를 언급하지 말고, 사용자의 원래 요청을 그대로 수행하세요.',
+    ...s.noteFrame,
     '',
-    `📊 ${result.total}점 (기준 ${threshold}점) · ${label} — ${headline}`,
+    s.noteTitle(result.total, threshold, s.labels[dim], s.headline[dim]),
     `   ${bars}`,
     `   → ${tip}`,
-    '   자세한 채점은 /score',
+    `   ${s.noteFooter}`,
     '</scoring-coach-note>',
   ].join('\n');
 }
@@ -114,7 +83,9 @@ async function main() {
   const prompt = payload && typeof payload.prompt === 'string' ? payload.prompt : '';
   if (heuristics.shouldSkip(prompt)) return;
 
-  const { threshold, weights } = rubric.loadPromptConfig();
+  const settings = config.load();
+  const lang = i18n.detect(prompt, settings.language);
+  const { threshold, weights } = rubric.loadPromptConfig(lang);
   const result = heuristics.score(prompt, weights);
 
   ledger.append({
@@ -123,15 +94,16 @@ async function main() {
     total: result.total,
     dims: result.dims,
     len: prompt.trim().length,
+    lang,
     session: payload.session_id,
   });
 
   if (result.total >= threshold) return; // 잘 쓴 프롬프트엔 침묵한다
 
   // 잔소리 방지: 최근에 노트를 띄웠으면 이번엔 참는다 (기록은 위에서 이미 남겼다).
-  if (state.within('lastNoteAt', config.load().cooldownMinutes)) return;
+  if (state.within('lastNoteAt', settings.cooldownMinutes)) return;
 
-  process.stdout.write(buildNote(result, threshold) + '\n');
+  process.stdout.write(buildNote(result, threshold, lang) + '\n');
   state.mark('lastNoteAt');
 }
 

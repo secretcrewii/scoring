@@ -13,6 +13,15 @@ allowed-tools: Read, Glob, Grep
 `~/.claude/scoring/prompts/` (Windows: `C:\Users\<사용자명>\.claude\scoring\prompts\`)에
 저장된 프롬프트를 찾아서 보여줍니다.
 
+## Language / 언어
+
+**Detect the language of the target text (the prompt, session, or document being reviewed)
+and respond entirely in that language.** Korean input gets a Korean review; English input
+gets an English review. When mixed, follow whichever language the user writes in.
+
+The output format shown below is written in Korean. When responding in English, translate
+the labels and headings but keep the structure identical.
+
 ## 절차
 
 1. **Glob**으로 `~/.claude/scoring/prompts/*.md` 목록을 가져옵니다.

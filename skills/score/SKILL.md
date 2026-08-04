@@ -13,6 +13,18 @@ allowed-tools: Read, Bash
 사용자(주로 대표)가 쓴 프롬프트를 정독하고 점수·근거·팁을 냅니다.
 훅의 자동 점수는 키워드 기반의 얕은 감지입니다. 여기서는 **실제로 읽고 판단합니다.**
 
+## Language / 언어
+
+**Detect the language of the target text (the prompt, session, or document being reviewed)
+and respond entirely in that language.** Korean input gets a Korean review; English input
+gets an English review. When mixed, follow whichever language the user writes in.
+
+Load the matching rubric: `${CLAUDE_PLUGIN_ROOT}/rubrics/<lang>/<name>.md` where `<lang>`
+is `ko` or `en`. If that path does not exist, fall back to `${CLAUDE_PLUGIN_ROOT}/rubrics/<name>.md`.
+
+The output format shown below is written in Korean. When responding in English, translate
+the labels and headings but keep the structure identical.
+
 ## 절차
 
 1. **채점 대상 확보**
@@ -20,10 +32,10 @@ allowed-tools: Read, Bash
    - 비어 있으면 **직전 사용자 프롬프트**(이 명령어 바로 앞의 발화)를 채점합니다.
    - 직전 프롬프트도 찾을 수 없으면 "어떤 프롬프트를 볼까요?"라고 한 줄로 묻고 멈춥니다.
 
-2. **기준 읽기** — `${CLAUDE_PLUGIN_ROOT}/rubrics/prompt.md`를 Read로 읽습니다.
+2. **기준 읽기** — `${CLAUDE_PLUGIN_ROOT}/rubrics/<lang>/prompt.md`를 Read로 읽습니다.
    여기 적힌 항목별 점수표와 감점 사유가 유일한 채점 기준입니다. 임의로 기준을 만들지 마세요.
 
-3. **팁 읽기** — `${CLAUDE_PLUGIN_ROOT}/rubrics/tips.md`를 Read로 읽고,
+3. **팁 읽기** — `${CLAUDE_PLUGIN_ROOT}/rubrics/<lang>/tips.md`를 Read로 읽고,
    점수가 낮은 항목에 해당하는 팁을 골라 씁니다.
 
 4. **채점** — 네 항목(역할 부여 / 맥락·배경 / 출력 형식 / 제약·예외)에 각 25점을 배점합니다.

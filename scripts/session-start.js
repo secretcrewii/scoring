@@ -15,10 +15,25 @@
 const config = require('./lib/config');
 const ledger = require('./lib/ledger');
 const state = require('./lib/state');
+const i18n = require('./lib/i18n');
+
+/**
+ * 안내 언어를 정한다. 설정이 auto면 최근 채점 기록에 남은 언어를 따른다 —
+ * 세션 시작 시점에는 아직 프롬프트가 없어서 감지할 대상이 없기 때문이다.
+ */
+function nudgeLanguage(records, configured) {
+  if (i18n.SUPPORTED.includes(configured)) return configured;
+
+  const korean = records.filter((r) => r.lang === 'ko').length;
+  const english = records.filter((r) => r.lang === 'en').length;
+  if (korean === 0 && english === 0) return i18n.DEFAULT_LANGUAGE;
+  return korean >= english ? 'ko' : 'en';
+}
 
 function main() {
+  const settings = config.load();
   if (!config.isEnabled()) return;
-  if (!config.load().dailyNudge) return;
+  if (!settings.dailyNudge) return;
   if (state.within('lastNudgeAt', 20 * 60)) return;
 
   const records = ledger.read({ sinceDays: 3 });
@@ -27,12 +42,14 @@ function main() {
   const totals = records.map((r) => r.total).filter(Number.isFinite);
   const avg = Math.round(totals.reduce((a, b) => a + b, 0) / totals.length);
 
+  const s = i18n.strings(nudgeLanguage(records, settings.language));
+
   process.stdout.write(
     [
       '<scoring-nudge>',
-      '아래는 사용자에게 표시되는 한 줄 안내입니다. 답변에서 언급하지 마세요.',
+      s.nudgeFrame,
       '',
-      `📊 최근 3일 프롬프트 ${records.length}건 채점, 평균 ${avg}점 · 추세는 /score-report, 세션 리뷰는 /score-session`,
+      s.nudge(records.length, avg),
       '</scoring-nudge>',
     ].join('\n') + '\n'
   );

@@ -13,6 +13,15 @@ allowed-tools: Read, Write, Glob
 잘 작동한 프롬프트를 저장해 팀의 자산으로 만듭니다. 연구 결론 그대로입니다 —
 "만능 문구는 없다. 방향은 마법 문구 수집이 아니라 **반복 업무용 표준 프롬프트 저장**."
 
+## Language / 언어
+
+**Detect the language of the target text (the prompt, session, or document being reviewed)
+and respond entirely in that language.** Korean input gets a Korean review; English input
+gets an English review. When mixed, follow whichever language the user writes in.
+
+The output format shown below is written in Korean. When responding in English, translate
+the labels and headings but keep the structure identical.
+
 ## 절차
 
 1. **저장 대상 확보** — 우선순위대로:

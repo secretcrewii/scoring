@@ -18,6 +18,8 @@ const DEFAULTS = {
   cooldownMinutes: 10,
   /** 하루 한 번, 세션 시작 시 채점 현황 한 줄 리마인더. */
   dailyNudge: true,
+  /** 코칭 언어. 'auto'면 프롬프트에서 감지한다 ('ko' | 'en' | 'auto'). */
+  language: 'auto',
 };
 
 /** 사용자 데이터 디렉터리. 플러그인 폴더 바깥이라 플러그인을 업데이트해도 살아남는다. */
@@ -57,6 +59,7 @@ function load() {
       config.cooldownMinutes = Math.max(0, parsed.cooldownMinutes);
     }
     if (typeof parsed.dailyNudge === 'boolean') config.dailyNudge = parsed.dailyNudge;
+    if (['ko', 'en', 'auto'].includes(parsed.language)) config.language = parsed.language;
   } catch {
     // 파일이 없는 것이 정상 경로다. 깨진 경우에도 기본값으로 계속 간다.
   }

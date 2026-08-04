@@ -5,7 +5,7 @@ valuable changes are markdown edits, not code.**
 
 ## The easiest useful contribution: a tip
 
-`rubrics/tips.md` is the tip library. Every line inside a `<!-- tip:role -->` block is
+`rubrics/<lang>/tips.md` is the tip library (`rubrics/en/tips.md`, `rubrics/ko/tips.md`). Every line inside a `<!-- tip:role -->` block is
 shown to users on rotation. Adding a good line is a complete, welcome contribution.
 
 ```markdown
@@ -22,10 +22,12 @@ Two rules for tips:
    (chain-of-thought as a universal, emotional appeals, politeness) because measurement
    says they don't work. Don't reintroduce folklore. See the
    "what the research overturned" table at the bottom of `tips.md`.
+3. **Only touch the language you can write natively.** A tip in awkward Korean or stilted
+   English is worse than no tip.
 
 ## Changing the scoring criteria
 
-`rubrics/prompt.md`, `session.md`, and `doc.md` are the single source of truth for scoring.
+`rubrics/<lang>/{prompt,session,doc}.md` are the single source of truth for scoring.
 `/score` reads them at runtime; the hook only pulls the threshold and weights from the
 JSON block at the top of `prompt.md`.
 
@@ -58,7 +60,7 @@ These are design constraints, not preferences. A PR that breaks one won't be mer
 ## Running things locally
 
 ```bash
-node --test              # 56 tests, Node's built-in runner
+node --test              # 62 tests, Node's built-in runner
 claude plugin validate . # same check the marketplace review runs
 ```
 
@@ -73,9 +75,24 @@ loads in place rather than being copied, so rubric edits apply immediately:
 Hook and skill changes need a Claude Code restart (or `/reload-plugins`). Rubric and tip
 changes don't.
 
-## A note on language
+## Language
 
-The plugin currently coaches in Korean, and the rubrics encode Korean-specific judgment
-(honorific level as an output-format requirement, for instance). English support is
-wanted but not yet built — if that's what you came for, open an issue before writing code
-so we can agree on the shape first.
+The plugin coaches in English and Korean, detected from the user's own prompt
+(`scripts/lib/i18n.js`). Each language has its own rubric tree:
+
+```
+rubrics/en/{prompt,session,doc,tips}.md
+rubrics/ko/{prompt,session,doc,tips}.md
+```
+
+**The two are not translations of each other, and shouldn't be.** The criteria genuinely
+differ — Korean scores honorific level as an output-format requirement, which has no
+English equivalent. Improve one language's rubric without touching the other if that's
+what the evidence supports.
+
+Adding a third language means: a rubric directory, a `STRINGS` entry in `i18n.js`, detection
+for that script or locale, and heuristic signals in `SIGNALS`. Open an issue first — the
+detection strategy is the part worth agreeing on before anyone writes code.
+
+Hook signals live in one shared array per dimension rather than a per-language map, so a
+mixed-language prompt collects credit from both. That's deliberate; keep it that way.

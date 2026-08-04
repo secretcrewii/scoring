@@ -30,7 +30,7 @@ const HARD_MIN_LENGTH = 8;
  * 길이만 보고 건너뛰면 가장 위험한 프롬프트를 놓친다.
  */
 const TASK_VERBS =
-  /(만들|작성|구현|생성|정리|분석|디자인|설계|기획|번역|요약|검토|리뷰|수정|고쳐|바꿔|찾아|조사|추가|삭제|배포|테스트|짜\s*줘|짜줘|써\s*줘|써줘|그려|만들어)/;
+  /(만들|작성|구현|생성|정리|분석|디자인|설계|기획|번역|요약|검토|리뷰|수정|고쳐|바꿔|찾아|조사|추가|삭제|배포|테스트|짜\s*줘|짜줘|써\s*줘|써줘|그려|만들어|\b(?:write|create|make|build|generate|draft|summari[sz]e|analy[sz]e|design|plan|translate|review|fix|refactor|update|find|research|add|remove|delete|deploy|test|explain|compare|convert|implement|rewrite|outline)\b)/i;
 
 /**
  * 숙고형 어미로 끝나는 문장 — 작업 지시가 아니라 의견을 묻는 대화다.
@@ -44,14 +44,15 @@ const DELIBERATIVE_ENDING =
  * "…부여해야 하지 않을까? 종합적으로" 처럼 뒤에 조각이 붙어도 잡아야 한다.
  */
 const DELIBERATIVE =
-  /(않을까|않을지|해야\s*하지|하는\s*게\s*(?:맞|좋|나)|는\s*게\s*(?:맞|좋|나)|좋을지|나을까|나을지|어떨지|어떨까|괜찮을까|맞을까)/;
+  /(않을까|않을지|해야\s*하지|하는\s*게\s*(?:맞|좋|나)|는\s*게\s*(?:맞|좋|나)|좋을지|나을까|나을지|어떨지|어떨까|괜찮을까|맞을까|\b(?:should\s+(?:i|we)|shouldn'?t\s+(?:i|we)|do\s+you\s+think|what\s+if|wouldn'?t\s+it|is\s+it\s+(?:better|worth)|any\s+(?:ideas|thoughts|suggestions))\b)/i;
 
 /** 의견을 묻는 표현 — 위치와 무관하게 대화 신호. */
-const OPINION_ASK = /(어떻게\s*생각|의견\s*(?:이|을|좀|은)|궁금|무슨\s*(?:소리|말)|뭔\s*(?:소리|말))/;
+const OPINION_ASK =
+  /(어떻게\s*생각|의견\s*(?:이|을|좀|은)|궁금|무슨\s*(?:소리|말)|뭔\s*(?:소리|말)|\b(?:what\s+do\s+you\s+think|your\s+(?:opinion|take)|thoughts\b|i'?m\s+curious|not\s+sure\s+(?:what|if)|what\s+does\s+(?:this|that)\s+mean)\b)/i;
 
 /** 감상·칭찬으로 시작하는 문장. 작업 동사가 없으면 대화로 본다. */
 const SENTIMENT_OPENER =
-  /^(좋다|좋네|좋아요|좋은데|와+\s|오+\s|우와|대박|굿|멋지|멋있|최고|감사|고마|고맙|훌륭|역시|미쳤|쩐다|짱)/;
+  /^(좋다|좋네|좋아요|좋은데|와+\s|오+\s|우와|대박|굿|멋지|멋있|최고|감사|고마|고맙|훌륭|역시|미쳤|쩐다|짱|(?:nice|great|awesome|cool|perfect|excellent|amazing|wow|love\s+(?:it|this)|thanks|thank\s+you|beautiful|impressive)\b)/i;
 
 /**
  * 사람이 쓴 프롬프트가 아니라 하네스가 주입한 메시지.
@@ -69,13 +70,14 @@ const QUESTION_MARK = /[?？]/;
  * "표 3행으로 정리해줄래?"는 질문형이지만 실제로는 지시다.
  */
 const REQUEST_MARKER =
-  /(줘|주세요|주실|줄래|줄\s*수|부탁|해\s*봐|해\s*보자|하자|시켜|시작해|진행해|만들어|알려)/;
+  /(줘|주세요|주실|줄래|줄\s*수|부탁|해\s*봐|해\s*보자|하자|시켜|시작해|진행해|만들어|알려|\b(?:please|can\s+you|could\s+you|would\s+you|give\s+me|show\s+me|help\s+me|let'?s|go\s+ahead|i\s+need\s+you\s+to|i\s+want\s+you\s+to)\b)/i;
 
 /**
  * 앞서 한 말을 다시 강조하는 어미 — 새 브리핑이 아니라 정정·재촉이다.
  * "아니 이거 이렇게 되게끔 하라고", "끝까지 다 하라고"
  */
-const REITERATION_ENDING = /(라고|말이야|말이지|얘기야|얘기지|거잖아|잖아요)\s*[.!~ㅋㅎ\s]*$/;
+const REITERATION_ENDING =
+  /(라고|말이야|말이지|얘기야|얘기지|거잖아|잖아요|\b(?:i\s+said|like\s+i\s+said|as\s+i\s+said|i\s+mean|i\s+meant))\s*[.!~ㅋㅎ\s]*$/i;
 
 /** 수긍 표현 판정은 이 길이 이하에서만 시도한다. */
 const ACK_MAX_LENGTH = 40;
@@ -110,10 +112,13 @@ const SIGNALS = {
     { re: /\bas\s+(?:an?|the)\s+\w+/i, pts: 8 },
     { re: /(역할|페르소나|persona|role)\s*[:：]/i, pts: 10 },
     { re: /(?:you\s+are|act\s+as)\s+an?\s/i, pts: 10 },
+    { re: /\b(?:\d+\+?\s*years?\s+(?:of\s+)?experience|senior|principal|veteran|seasoned|junior)\b/i, pts: 6 },
     // 용도·독자 명시는 역할 부여를 대체한다 — 연구상 동등하거나 더 효과적 (rubrics/prompt.md 참고).
     // "ChatGPT에 붙여넣을 용도", "30대 고객에게 보낼" 같은 표현이 여기 해당한다.
     { re: /(에게\s*(?:보낼|전달할|안내할|발송할|줄)|가\s*읽을|이\s*볼|용도로|용도이|할\s*용도|에\s*쓸|에\s*붙여넣|목적으로|에\s*올릴)/, pts: 8 },
     { re: /(독자는|대상\s*독자|읽는\s*사람|보는\s*사람은)/, pts: 8 },
+    { re: /\b(?:target\s+audience|intended\s+for|will\s+be\s+read\s+by|written\s+for|aimed\s+at|this\s+is\s+for)\b/i, pts: 8 },
+    { re: /\b(?:from\s+(?:the\s+)?(?:perspective|point\s+of\s+view|standpoint|lens)\s+of|through\s+the\s+lens\s+of)\b/i, pts: 8 },
   ],
 
   // 맥락 · 배경: 왜 이걸 시키는지, 누구를 위한 건지 알려줬는가
@@ -124,6 +129,10 @@ const SIGNALS = {
     { re: /(@[\w./\\-]+|`[^`]+`|\.(?:md|txt|csv|json|ts|js|py|pdf|xlsx?|docx?)\b)/i, pts: 5 },
     { re: /(현재|지금|기존|우리는|우리가|저희는|저희가)/, pts: 4 },
     { re: /(상황|배경|맥락|context|전제)/i, pts: 5 },
+    { re: /\b(?:so\s+that|because|in\s+order\s+to|the\s+goal\s+is|we'?re\s+trying\s+to|we\s+need\s+this|the\s+point\s+is|this\s+will\s+be\s+used)\b/i, pts: 7 },
+    { re: /\b(?:audience|readers?|customers?|stakeholders?|executives?|beginners?|non-?technical|end\s+users?)\b/i, pts: 5 },
+    { re: /\b(?:attached|below|above|the\s+following|based\s+on|according\s+to|see\s+the|reference[sd]?)\b/i, pts: 5 },
+    { re: /\b(?:currently|right\s+now|at\s+the\s+moment|existing|we\s+(?:have|use|run)|our\s+(?:team|company|product|current))\b/i, pts: 4 },
   ],
 
   // 출력 형식: 어떤 모양으로 답할지 정해줬는가
@@ -137,6 +146,12 @@ const SIGNALS = {
     // 단위마다 조건을 다는 것도 형식 지정이다 ("각 항목마다 근거를 붙여줘")
     { re: /각\s*(?:행|줄|항목|단계|칸|문단|섹션|가지|개)/, pts: 6 },
     { re: /(정리해|정리하고|정리해서|나열|목록화|분류해)/, pts: 5 },
+    { re: /\b(?:table|markdown|json|yaml|csv|bullet(?:ed|s)?|numbered\s+list|outline|columns?)\b/i, pts: 9 },
+    { re: /\b\d+\s*(?:lines?|rows?|items?|bullets?|sentences?|paragraphs?|words?|characters?|chars?|pages?|slides?|columns?|sections?|steps?)\b/i, pts: 9 },
+    { re: /\b(?:format|structure|layout|template|schema|shape)\b/i, pts: 6 },
+    { re: /\b(?:for\s+example|e\.g\.|for\s+instance|sample|like\s+this|such\s+as)\b/i, pts: 6 },
+    { re: /\b(?:step[-\s]?by[-\s]?step|in\s+order|sequentially)\b/i, pts: 5 },
+    { re: /\beach\s+(?:row|line|item|step|section|column|bullet|entry)\b/i, pts: 6 },
   ],
 
   // 제약 · 예외: 하지 말아야 할 것, 지켜야 할 선을 그어줬는가
@@ -149,6 +164,12 @@ const SIGNALS = {
     { re: /(조건|제약|규칙|주의|유의|단,|다만)/, pts: 5 },
     // 범위 한정도 제약이다 — "디자이너 업무에 대해서만", "지금은 일단 ~만"
     { re: /(대해서만|에\s*한해|한정해|까지만|범위는|스코프|지금은\s*(?:일단\s*)?[^.!?\n]{0,20}만)/, pts: 6 },
+    { re: /\b(?:do\s+not|don'?t|never|avoid|without|except|exclude|skip\s+the|leave\s+out|no\s+need\s+to)\b/i, pts: 8 },
+    { re: /\b(?:must|always|required|mandatory|strictly|be\s+sure\s+to|make\s+sure)\b/i, pts: 7 },
+    { re: /\b(?:tone|voice|formal|informal|casual|professional|friendly|concise|plain\s+language)\b/i, pts: 6 },
+    { re: /\b(?:under|at\s+most|no\s+more\s+than|maximum|minimum|within|less\s+than|fewer\s+than|up\s+to)\b/i, pts: 6 },
+    { re: /\b(?:constraints?|rules?|requirements?|note\s+that|caveat|important:)\b/i, pts: 5 },
+    { re: /\b(?:only\s+(?:for|the|cover|include)|limited\s+to|scope\s+is|just\s+the|for\s+now|nothing\s+else)\b/i, pts: 6 },
   ],
 };
 

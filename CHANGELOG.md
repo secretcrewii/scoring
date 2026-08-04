@@ -3,6 +3,43 @@
 All notable changes to this project are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow [SemVer](https://semver.org/).
 
+## [0.5.0] — 2026-08-04
+
+English support. The plugin now coaches in English or Korean, picked from the user's own
+prompt rather than a setting.
+
+### Added
+
+- `scripts/lib/i18n.js` — language detection and hook strings. Hangul anywhere in the
+  prompt means Korean; otherwise English. Bilingual users never touch a setting.
+- `rubrics/en/{prompt,session,doc,tips}.md` — a full English rubric set. Not translations:
+  the criteria differ where the languages differ (Korean scores honorific level as an
+  output-format requirement; English has no such axis).
+- English signals across all four scoring dimensions, plus English conversation detection
+  (question mark without a request marker, deliberative phrasing, sentiment openers).
+- `config.language` (`"auto"` | `"ko"` | `"en"`) to pin the language.
+- Ledger records now carry `lang`, and the daily nudge follows whichever language the
+  recent records used.
+- 5 English test groups; 62 tests total (was 57).
+
+### Changed
+
+- **Rubrics moved to `rubrics/<lang>/`.** If you had edited `rubrics/prompt.md` directly,
+  it still loads — the resolver falls back to the flat path before giving up.
+- All seven skills now detect the target text's language and answer in it. `/explain`
+  answers in the language the *user* writes, not the language of the report being
+  explained — translating the hard parts is the point of that skill.
+
+## [0.4.1] — 2026-08-03
+
+### Fixed
+
+- Harness-injected messages were being scored as if they were user prompts. A background
+  task notification scored 8, showed a pointless note, and wrote a 404-character junk
+  record into the ledger. Now skipped: `[SYSTEM NOTIFICATION`, `<task-notification>`,
+  `<system-reminder>`, `<local-command-caveat>`, `<command-name>`/`<command-message>`,
+  `<local-command-stdout>`.
+
 ## [0.4.0] — 2026-08-03
 
 Rebuilt conversation detection from real-world false positives, and closed the one

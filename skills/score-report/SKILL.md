@@ -12,6 +12,15 @@ allowed-tools: Bash
 
 쌓인 기록에서 **패턴**을 읽습니다. 개별 점수가 아니라 방향을 봅니다.
 
+## Language / 언어
+
+**Detect the language of the target text (the prompt, session, or document being reviewed)
+and respond entirely in that language.** Korean input gets a Korean review; English input
+gets an English review. When mixed, follow whichever language the user writes in.
+
+The output format shown below is written in Korean. When responding in English, translate
+the labels and headings but keep the structure identical.
+
 ## 절차
 
 1. **집계 실행** — Bash로 다음을 실행합니다.

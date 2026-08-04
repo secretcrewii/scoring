@@ -44,6 +44,7 @@ function append(record) {
       total: record.total,
       dims: record.dims,
       len: record.len,
+      lang: record.lang,
       session: record.session,
     });
 

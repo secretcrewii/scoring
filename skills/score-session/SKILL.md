@@ -12,9 +12,21 @@ allowed-tools: Read, Bash
 
 개별 프롬프트가 아니라 **일을 시키는 방식**을 봅니다.
 
+## Language / 언어
+
+**Detect the language of the target text (the prompt, session, or document being reviewed)
+and respond entirely in that language.** Korean input gets a Korean review; English input
+gets an English review. When mixed, follow whichever language the user writes in.
+
+Load the matching rubric: `${CLAUDE_PLUGIN_ROOT}/rubrics/<lang>/<name>.md` where `<lang>`
+is `ko` or `en`. If that path does not exist, fall back to `${CLAUDE_PLUGIN_ROOT}/rubrics/<name>.md`.
+
+The output format shown below is written in Korean. When responding in English, translate
+the labels and headings but keep the structure identical.
+
 ## 절차
 
-1. **기준 읽기** — `${CLAUDE_PLUGIN_ROOT}/rubrics/session.md`를 Read로 읽습니다.
+1. **기준 읽기** — `${CLAUDE_PLUGIN_ROOT}/rubrics/<lang>/session.md`를 Read로 읽습니다.
 
 2. **세션 훑기** — 현재 대화에서 사용자가 보낸 발화들을 처음부터 되짚습니다.
    - 첫 지시가 얼마나 준비되어 있었는가

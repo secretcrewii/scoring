@@ -13,6 +13,15 @@ allowed-tools: Read
 AI가 작업을 끝내고 낸 보고가 너무 길거나 어려울 때, **다른 AI에게 물으러 가지 않고
 그 자리에서 바로** 이해할 수 있게 풀어줍니다. 작업 흐름이 끊기지 않는 것이 목적입니다.
 
+## Language / 언어
+
+**Respond in the language the user writes in**, not the language of the report you are
+explaining. Someone writing Korean gets a Korean explanation even if the original report
+was in English — translating the hard parts is the whole point of this skill.
+
+The output format shown below is written in Korean. When responding in English, translate
+the labels and headings but keep the structure identical.
+
 ## 절차
 
 1. **설명 대상 확보**

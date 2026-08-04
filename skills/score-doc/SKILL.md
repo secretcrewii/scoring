@@ -12,6 +12,18 @@ allowed-tools: Read, Bash
 
 사람이 읽을 문서를 평가합니다. **읽는 사람이 결정을 내릴 수 있는가**가 핵심입니다.
 
+## Language / 언어
+
+**Detect the language of the target text (the prompt, session, or document being reviewed)
+and respond entirely in that language.** Korean input gets a Korean review; English input
+gets an English review. When mixed, follow whichever language the user writes in.
+
+Load the matching rubric: `${CLAUDE_PLUGIN_ROOT}/rubrics/<lang>/<name>.md` where `<lang>`
+is `ko` or `en`. If that path does not exist, fall back to `${CLAUDE_PLUGIN_ROOT}/rubrics/<name>.md`.
+
+The output format shown below is written in Korean. When responding in English, translate
+the labels and headings but keep the structure identical.
+
 ## 절차
 
 1. **문서 확보**
@@ -22,7 +34,7 @@ allowed-tools: Read, Bash
 2. **목적 확인** — 이 문서가 설득용인지, 공유용인지, 승인 요청용인지 먼저 판단합니다.
    문서에서 판단이 안 되면 사용자에게 한 번 묻습니다. 목적이 다르면 좋은 문서의 기준도 달라집니다.
 
-3. **기준 읽기** — `${CLAUDE_PLUGIN_ROOT}/rubrics/doc.md`를 Read로 읽습니다.
+3. **기준 읽기** — `${CLAUDE_PLUGIN_ROOT}/rubrics/<lang>/doc.md`를 Read로 읽습니다.
 
 4. **채점** — 네 항목(결론이 먼저 / 근거 / 대상 독자 / 다음 행동)에 각 25점.
    점수마다 **문서의 실제 문장을 인용해** 근거를 답니다.
