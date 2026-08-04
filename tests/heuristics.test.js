@@ -188,23 +188,65 @@ test('범위 한정을 제약으로 잡는다 (실사례)', () => {
   );
 });
 
-test('대화·감상·의견 질문은 채점하지 않는다 (실사례)', () => {
-  // 실제로 4점 노트가 떴던 대화형 메시지 — 작업 동사('추가')가 있어도 대화다
-  assert.strictEqual(
-    shouldSkip('좋다 지금 이 플러그인 너무 좋다. 근데 더 업그레이드 하거나 추가해야할게 있을까?'),
-    true
-  );
-  assert.strictEqual(isConversational('이 기능 어떻게 생각해? 의견이 궁금하네'), true);
-  assert.strictEqual(isConversational('그렇게 하는 게 더 좋을까'), true);
+/**
+ * 실사용 중 훅이 잘못 떴던 메시지들. 전부 실제 기록에서 가져왔다.
+ * 이 배열이 잔소리 회귀를 막는 방어선이다.
+ */
+const REAL_CONVERSATIONAL = [
+  '좋다 지금 이 플러그인 너무 좋다. 근데 더 업그레이드 하거나 추가해야할게 있을까?',
+  '점수 루브릭 더 개선했어? 그리고 4항목 말고 다른 쪽에서도 점수를 부여해야하지 않을까? 종합적으로',
+  '이거 플러그인 마켓플레이스에 있는거지?',
+  '여기서 내가 고치라고 하면 바로 고칠수 있겠어?',
+  '나 이거 뭔 소리인지 이해 안되는데 뭐가 잘 못됐다는거야? 그리고 내가 하라고 한건 뭐야',
+  '아니 이거 내가 만든 다른 플러그인인데 이렇게 되게끔 하라고',
+  '아니 하라고 끝까지 전부 다 하라고',
+];
 
+/** 반대로 반드시 채점되어야 하는 실제 작업 브리핑들. */
+const REAL_WORK = [
+  '메신저 앱 만들건데 만들어봐',
+  '보고서 좀 써줘 우리 신규 요금제에 대해서 정리해주면 좋겠어',
+  '너는 10년 차 마케터야. 신규 요금제 안내 메일을 표 3행으로 써줘',
+  '나는 이커머스 셀러고 직원의 구성은 디자이너, 마케터, MD, CS가 있는데 ' +
+    '지금은 일단 디자이너 업무에 대해서만 체크리스트를 만들고 싶어. 조사 후에 논의하고 제작해줘',
+  '경쟁사 3곳을 가격·배송·리뷰 수 3개 열의 표로 비교해줄래?',
+];
+
+test('실사용에서 오탐 났던 대화형 메시지를 전부 걸러낸다', () => {
+  for (const message of REAL_CONVERSATIONAL) {
+    assert.strictEqual(
+      shouldSkip(message),
+      true,
+      `대화인데 채점됨: ${message.slice(0, 45)}…`
+    );
+  }
+});
+
+test('실제 작업 브리핑은 대화로 오인하지 않는다', () => {
+  for (const message of REAL_WORK) {
+    assert.strictEqual(
+      shouldSkip(message),
+      false,
+      `작업인데 스킵됨: ${message.slice(0, 45)}…`
+    );
+  }
+});
+
+test('대화 감지 세부 규칙', () => {
+  // 의견 질문
+  assert.strictEqual(isConversational('이 기능 어떻게 생각해? 의견이 궁금하네'), true);
+  // 숙고형 — 문장 끝이 아니어도
+  assert.strictEqual(isConversational('그렇게 하는 게 더 좋을까'), true);
+  assert.strictEqual(isConversational('이 방식이 맞지 않을까 싶은데 말이지'), true);
+  // 물음표 + 요청 표현 없음
+  assert.strictEqual(isConversational('이거 지금 어디에 저장돼 있어?'), true);
+  // 물음표 + 요청 표현 있음 → 작업
+  assert.strictEqual(isConversational('이거 표로 정리해줄래?'), false);
+  assert.strictEqual(isConversational('신규 요금제 안내문 좀 써주세요?'), false);
   // 감상으로 시작해도 작업 동사가 이어지면 작업이다
   assert.strictEqual(isConversational('좋다. 이제 결제 모듈 배포해줘'), false);
   // 평범한 작업 지시는 대화가 아니다
   assert.strictEqual(isConversational('메신저 앱 만들건데 만들어봐'), false);
-  assert.strictEqual(
-    shouldSkip('너는 10년 차 마케터야. 신규 요금제 안내 메일을 표 3행으로 써줘'),
-    false
-  );
 });
 
 test('용도·독자 명시를 역할 대체로 인정한다 (실사례: 훅 64 vs 정독 78 괴리)', () => {

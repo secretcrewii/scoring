@@ -39,12 +39,35 @@ const TASK_VERBS =
 const DELIBERATIVE_ENDING =
   /(있을까|할까|할까요|좋을까|어떨까|어떤가|어때|일까|을까요|는지|은지|인가|인가요|잖아)\s*[?？!.~ㅋㅎ\s]*$/;
 
+/**
+ * 숙고형 표현 — 문장 끝이 아니어도 대화 신호다.
+ * "…부여해야 하지 않을까? 종합적으로" 처럼 뒤에 조각이 붙어도 잡아야 한다.
+ */
+const DELIBERATIVE =
+  /(않을까|않을지|해야\s*하지|하는\s*게\s*(?:맞|좋|나)|는\s*게\s*(?:맞|좋|나)|좋을지|나을까|나을지|어떨지|어떨까|괜찮을까|맞을까)/;
+
 /** 의견을 묻는 표현 — 위치와 무관하게 대화 신호. */
-const OPINION_ASK = /(어떻게\s*생각|의견\s*(?:이|을|좀|은)|궁금)/;
+const OPINION_ASK = /(어떻게\s*생각|의견\s*(?:이|을|좀|은)|궁금|무슨\s*(?:소리|말)|뭔\s*(?:소리|말))/;
 
 /** 감상·칭찬으로 시작하는 문장. 작업 동사가 없으면 대화로 본다. */
 const SENTIMENT_OPENER =
   /^(좋다|좋네|좋아요|좋은데|와+\s|오+\s|우와|대박|굿|멋지|멋있|최고|감사|고마|고맙|훌륭|역시|미쳤|쩐다|짱)/;
+
+/** 물음표. 한국어에서 가장 강한 질문 신호다. */
+const QUESTION_MARK = /[?？]/;
+
+/**
+ * 요청 표현. 물음표가 있어도 이게 함께 있으면 작업 브리핑으로 본다.
+ * "표 3행으로 정리해줄래?"는 질문형이지만 실제로는 지시다.
+ */
+const REQUEST_MARKER =
+  /(줘|주세요|주실|줄래|줄\s*수|부탁|해\s*봐|해\s*보자|하자|시켜|시작해|진행해|만들어|알려)/;
+
+/**
+ * 앞서 한 말을 다시 강조하는 어미 — 새 브리핑이 아니라 정정·재촉이다.
+ * "아니 이거 이렇게 되게끔 하라고", "끝까지 다 하라고"
+ */
+const REITERATION_ENDING = /(라고|말이야|말이지|얘기야|얘기지|거잖아|잖아요)\s*[.!~ㅋㅎ\s]*$/;
 
 /** 수긍 표현 판정은 이 길이 이하에서만 시도한다. */
 const ACK_MAX_LENGTH = 40;
@@ -167,7 +190,12 @@ function isAck(text) {
 }
 
 /**
- * 작업 브리핑이 아닌 대화(감상·의견 질문·숙고)인지 판단한다.
+ * 작업 브리핑이 아닌 대화(감상·질문·숙고·재촉)인지 판단한다.
+ *
+ * 판단이 애매하면 대화 쪽으로 기웁니다 — 놓친 코칭은 보이지 않지만
+ * 헛도는 잔소리는 바로 거슬리고, 결국 플러그인을 끄게 만들기 때문입니다.
+ * 제대로 채점받고 싶으면 언제든 /score를 부르면 됩니다.
+ *
  * @param {string} text
  * @returns {boolean}
  */
@@ -176,10 +204,16 @@ function isConversational(text) {
   if (trimmed.length === 0) return false;
 
   if (DELIBERATIVE_ENDING.test(trimmed)) return true;
+  if (DELIBERATIVE.test(trimmed)) return true;
   if (OPINION_ASK.test(trimmed)) return true;
+  if (REITERATION_ENDING.test(trimmed)) return true;
 
   // 칭찬으로 시작하고 작업 동사가 없으면 감상이다. ("좋다. 이제 배포해줘"는 작업)
   if (SENTIMENT_OPENER.test(trimmed) && !TASK_VERBS.test(trimmed)) return true;
+
+  // 물음표가 있는데 요청 표현이 없으면 질문이다.
+  // "이거 마켓플레이스에 있는거지?" → 질문 / "표로 정리해줄래?" → 요청
+  if (QUESTION_MARK.test(trimmed) && !REQUEST_MARKER.test(trimmed)) return true;
 
   return false;
 }
